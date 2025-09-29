@@ -7,13 +7,13 @@ public class Application {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long id; // Consistent with JPA standard
 
     @Column(nullable = false)
-    private Long userId;
+    private Long userId; // Consistent with Long
 
     @Column(nullable = false)
-    private Long jobId;
+    private Long jobId; // Consistent with Long
 
     private String userName;
     private String status;

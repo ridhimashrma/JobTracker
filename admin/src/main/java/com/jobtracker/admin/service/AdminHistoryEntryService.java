@@ -1,4 +1,5 @@
 package com.jobtracker.admin.service;
+
 import com.jobtracker.admin.entity.AdminHistoryEntry;
 import com.jobtracker.admin.repository.AdminHistoryEntryRepository;
 import org.springframework.beans.factory.annotation.Autowired;

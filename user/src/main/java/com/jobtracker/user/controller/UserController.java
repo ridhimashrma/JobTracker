@@ -19,15 +19,8 @@ public class UserController {
     @Autowired
     private RestTemplate restTemplate;
 
-    @GetMapping("/jobs")
-    public Object getAllJobsFromJobService() {
-        String url = "http://job/jobs";  // use Job service's spring.application.name
-        return restTemplate.getForObject(url, Object.class);
-    }
-
-
-    // Registration endpoint
-    @PostMapping
+    // Registration
+    @PostMapping("/register")
     public User registerUser(@RequestBody User user) {
         if (user.getName() == null || user.getEmail() == null || user.getPassword() == null || user.getRole() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "All fields are required");
@@ -38,30 +31,60 @@ public class UserController {
         return service.createUser(user);
     }
 
-    // Login endpoint
+    // Login
     @PostMapping("/login")
     public User loginUser(@RequestBody User loginRequest) {
         User user = service.getUserByEmail(loginRequest.getEmail());
         if (user != null && user.getPassword().equals(loginRequest.getPassword())) {
+            service.setLoggedIn(user.getEmail(), true); // set login status
             return user;
         } else {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
         }
     }
+    @GetMapping("/isLoggedIn")
+    public Boolean checkLoggedIn(@RequestParam String email) {
+        return service.isLoggedIn(email);
+    }
 
-    // Get user by email
-    @GetMapping("/{email}")
-    public User getUserByEmail(@PathVariable String email) {
-        User user = service.getUserByEmail(email);
-        if (user == null) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+    @GetMapping("/checkLogin")
+    public boolean checkLogin(@RequestParam String email) {
+        return service.isLoggedIn(email);
+    }
+    // Logout
+    @PostMapping("/logout")
+    public String logoutUser(@RequestParam String email) {
+        service.setLoggedIn(email, false);
+        return "Logged out successfully";
+    }
+
+    // Get all users (protected)
+    @GetMapping
+    public List<User> getAllUsers(@RequestParam String email) {
+        if (!service.isLoggedIn(email)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login required");
         }
+        return service.getAllUsers();
+    }
+
+    // Get user by email (protected)
+    @GetMapping("/{userEmail}")
+    public User getUserByEmail(@PathVariable String userEmail, @RequestParam String email) {
+        if (!service.isLoggedIn(email)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login required");
+        }
+        User user = service.getUserByEmail(userEmail);
+        if (user == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         return user;
     }
 
-    // Get all users
-    @GetMapping
-    public List<User> getAllUsers() {
-        return service.getAllUsers();
+    // Fetch all jobs from Job service (protected)
+    @GetMapping("/jobs")
+    public Object getAllJobs(@RequestParam String email) {
+        if (!service.isLoggedIn(email)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login required");
+        }
+        String url = "http://job/jobs"; // Job microservice endpoint
+        return restTemplate.getForObject(url, Object.class);
     }
 }

@@ -41,9 +41,9 @@ public class JobService {
                 .orElseThrow(() -> new RuntimeException("Job not found with id " + id));
     }
 
-    // ✅ New method to get applications for a job
+    // Get applications for a job via Application service
     public List<ApplicationDTO> getApplicationsForJob(int jobId) {
-        String url = "http://application-service/applications/job/" + jobId;
+        String url = "http://APPLICATION-SERVICE/applications/job/" + jobId;
         ApplicationDTO[] applications = restTemplate.getForObject(url, ApplicationDTO[].class);
         return Arrays.asList(applications);
     }
