@@ -2,14 +2,15 @@ package com.jobtracker.application.service;
 
 import com.jobtracker.application.dto.JobDTO;
 import com.jobtracker.application.dto.UserDTO;
+import com.jobtracker.application.dto.EmailRequest; // <-- create this DTO in application module
 import com.jobtracker.application.entity.Application;
 import com.jobtracker.application.repository.ApplicationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus; // Import HttpStatus
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.web.server.ResponseStatusException; // Import ResponseStatusException
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +26,7 @@ public class ApplicationService {
 
     private final String USER_SERVICE_NAME = "USER-SERVICE";
     private final String JOB_SERVICE_NAME = "JOB-SERVICE";
+    private final String NOTIFICATION_SERVICE_NAME = "NOTIFICATION-SERVICE";
 
     public Application saveApplication(Application application) {
         UserDTO user = null;
@@ -33,34 +35,38 @@ public class ApplicationService {
         // 1. Fetch User and enforce required data
         try {
             ResponseEntity<UserDTO> userRes = restTemplate.getForEntity(
-                    "http://" + USER_SERVICE_NAME + "/users/" + application.getUserId(), UserDTO.class);
+                    "http://" + USER_SERVICE_NAME + "/users/" + application.getUserId(),
+                    UserDTO.class);
 
             if (userRes.getStatusCode() == HttpStatus.OK && userRes.getBody() != null) {
                 user = userRes.getBody();
             } else {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User with ID " + application.getUserId() + " not found or service error.");
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "User with ID " + application.getUserId() + " not found or service error.");
             }
         } catch (Exception e) {
-            // Catch RestTemplate connection/timeout issues
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to connect to USER-SERVICE.", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to connect to USER-SERVICE.", e);
         }
 
         // 2. Fetch Job and enforce required data
         try {
             ResponseEntity<JobDTO> jobRes = restTemplate.getForEntity(
-                    "http://" + JOB_SERVICE_NAME + "/jobs/" + application.getJobId(), JobDTO.class);
+                    "http://" + JOB_SERVICE_NAME + "/jobs/" + application.getJobId(),
+                    JobDTO.class);
 
             if (jobRes.getStatusCode() == HttpStatus.OK && jobRes.getBody() != null) {
                 job = jobRes.getBody();
             } else {
-                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Job with ID " + application.getJobId() + " not found or service error.");
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Job with ID " + application.getJobId() + " not found or service error.");
             }
         } catch (Exception e) {
-            // Catch RestTemplate connection/timeout issues
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to connect to JOB-SERVICE.", e);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed to connect to JOB-SERVICE.", e);
         }
 
-        // 3. Set derived fields (now guaranteed to have user and job objects)
+        // 3. Set derived fields
         application.setUserName(user.getName());
         application.setJobTitle(job.getTitle());
         application.setCompany(job.getCompany());
@@ -69,12 +75,32 @@ public class ApplicationService {
             application.setStatus("Applied");
         }
 
-        return repository.save(application);
+        // 4. Save application
+        Application savedApp = repository.save(application);
+
+        // 5. Notify user (best-effort: don’t block if it fails)
+        try {
+            EmailRequest email = new EmailRequest(
+                    user.getEmail(),
+                    "Application Received: " + job.getTitle(),
+                    "Hi " + user.getName() + ",\n\nWe have received your application for "
+                            + job.getTitle() + " at " + job.getCompany()
+                            + ". Our team will review it and get back to you.\n\nThank you!");
+
+            restTemplate.postForObject(
+                    "http://" + NOTIFICATION_SERVICE_NAME + "/api/notifications/send",
+                    email,
+                    String.class
+            );
+        } catch (Exception e) {
+            // Log only; don’t break main flow
+            System.err.println("Failed to send notification email: " + e.getMessage());
+        }
+
+        return savedApp;
     }
 
-    // ... rest of the service methods remain the same ...
-    // Note: You must ensure your controller calls still align with Long IDs
-    // (e.g., getApplicationsByJob and deleteApplication need to accept Long)
+    // Other CRUD methods remain unchanged
 
     public List<Application> getAllApplications() {
         return repository.findAll();
@@ -97,3 +123,4 @@ public class ApplicationService {
         repository.deleteById(id);
     }
 }
+
