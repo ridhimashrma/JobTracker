@@ -47,4 +47,27 @@ public class JobService {
         ApplicationDTO[] applications = restTemplate.getForObject(url, ApplicationDTO[].class);
         return Arrays.asList(applications);
     }
+
+    // Recommend jobs for a user based on their skills
+    public List<Job> recommendJobsForUser(String userEmail) {
+        // 1. Fetch user details from USER-SERVICE
+        String userUrl = "http://USER-SERVICE/users/" + userEmail + "?email=" + userEmail;
+        var user = restTemplate.getForObject(userUrl, com.jobtracker.job.dto.UserDTO.class);
+
+        if (user == null || user.getSkills() == null || user.getSkills().isEmpty()) {
+            throw new RuntimeException("User or skills not found for email: " + userEmail);
+        }
+
+        // 2. Get all jobs
+        List<Job> allJobs = jobRepository.findAll();
+
+        // 3. Match skills with job roles
+        String[] userSkills = user.getSkills().toLowerCase().split(",");
+        return allJobs.stream()
+                .filter(job -> {
+                    String role = job.getRoleRequired().toLowerCase();
+                    return Arrays.stream(userSkills).anyMatch(skill -> role.contains(skill.trim()));
+                })
+                .toList();
+    }
 }
