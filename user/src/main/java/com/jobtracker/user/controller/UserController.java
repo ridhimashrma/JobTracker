@@ -22,14 +22,18 @@ public class UserController {
     // Registration
     @PostMapping("/register")
     public User registerUser(@RequestBody User user) {
-        if (user.getName() == null || user.getEmail() == null || user.getPassword() == null || user.getRole() == null) {
+        if (user.getName() == null || user.getEmail() == null ||
+                user.getPassword() == null || user.getRole() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "All fields are required");
         }
         if (service.getUserByEmail(user.getEmail()) != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already exists");
         }
+
+        // Skills are optional at registration, but we still accept them
         return service.createUser(user);
     }
+
 
     // Login
     @PostMapping("/login")
@@ -86,5 +90,25 @@ public class UserController {
         }
         String url = "http://job/jobs"; // Job microservice endpoint
         return restTemplate.getForObject(url, Object.class);
+    }
+
+    //Update user profile (for updating skills, etc.)
+    @PutMapping("/{userEmail}")
+    public User updateUser(@PathVariable String userEmail, @RequestBody User updatedUser, @RequestParam String email) {
+        if (!service.isLoggedIn(email)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Login required");
+        }
+        User existingUser = service.getUserByEmail(userEmail);
+        if (existingUser == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+        }
+
+        // update fields if provided
+        if (updatedUser.getName() != null) existingUser.setName(updatedUser.getName());
+        if (updatedUser.getPassword() != null) existingUser.setPassword(updatedUser.getPassword());
+        if (updatedUser.getRole() != null) existingUser.setRole(updatedUser.getRole());
+        if (updatedUser.getSkills() != null) existingUser.setSkills(updatedUser.getSkills());
+
+        return service.createUser(existingUser); // reuse save method
     }
 }

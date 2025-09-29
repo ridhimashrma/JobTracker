@@ -22,14 +22,19 @@ public class User {
     @Column(nullable = false)
     private String role;
 
+    // New field for user skills (comma-separated values)
+    @Column(name = "skills")
+    private String skills; // e.g., "Java,Spring,SQL"
+
     public User() {}
 
-    public User(int id, String name, String email, String password, String role) {
+    public User(int id, String name, String email, String password, String role, String skills) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.password = password;
         this.role = role;
+        this.skills = skills;
     }
 
     // Getters and setters
@@ -73,6 +78,14 @@ public class User {
         this.role = role;
     }
 
+    public String getSkills() {
+        return skills;
+    }
+
+    public void setSkills(String skills) {
+        this.skills = skills;
+    }
+
     @Override
     public String toString() {
         return "User{" +
@@ -81,6 +94,7 @@ public class User {
                 ", email='" + email + '\'' +
                 ", password='" + password + '\'' +
                 ", role='" + role + '\'' +
+                ", skills='" + skills + '\'' +
                 '}';
     }
 }

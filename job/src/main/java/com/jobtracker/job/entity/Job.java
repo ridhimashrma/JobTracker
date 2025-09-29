@@ -1,4 +1,5 @@
 package com.jobtracker.job.entity;
+
 import jakarta.persistence.*;
 import java.sql.Date;
 
@@ -25,15 +26,21 @@ public class Job {
     @Column(nullable = false)
     private Date deadline;
 
+    // New field for job required skills (comma-separated values)
+    @Column(name = "required_skills")
+    private String requiredSkills; // e.g., "Java,Spring Boot,Microservices"
+
     public Job() {}
 
-    public Job(int id, String title, String description, String company, String roleRequired, Date deadline) {
+    public Job(int id, String title, String description, String company,
+               String roleRequired, Date deadline, String requiredSkills) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.company = company;
         this.roleRequired = roleRequired;
         this.deadline = deadline;
+        this.requiredSkills = requiredSkills;
     }
 
     public int getId() { return id; }
@@ -54,6 +61,9 @@ public class Job {
     public Date getDeadline() { return deadline; }
     public void setDeadline(Date deadline) { this.deadline = deadline; }
 
+    public String getRequiredSkills() { return requiredSkills; }
+    public void setRequiredSkills(String requiredSkills) { this.requiredSkills = requiredSkills; }
+
     @Override
     public String toString() {
         return "Job{" +
@@ -63,6 +73,7 @@ public class Job {
                 ", company='" + company + '\'' +
                 ", roleRequired='" + roleRequired + '\'' +
                 ", deadline=" + deadline +
+                ", requiredSkills='" + requiredSkills + '\'' +
                 '}';
     }
 }

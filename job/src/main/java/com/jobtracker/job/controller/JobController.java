@@ -65,4 +65,11 @@ public class JobController {
         checkUserLogin(email);
         return jobService.getApplicationsForJob(id);
     }
+
+    // Recommend jobs for a user
+    @GetMapping("/recommendations/{userEmail}")
+    public List<Job> recommendJobs(@PathVariable String userEmail, @RequestParam String email) {
+        return jobService.recommendJobsForUser(userEmail);
+    }
+
 }
